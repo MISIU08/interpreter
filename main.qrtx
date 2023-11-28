@@ -1,0 +1,12 @@
+
+int hello123(i32 f,#unresolved_string k,i32 l,i32 l,i32 l,i32 l);
+int hello(int b);
+int h = hello123(121+23-42+(4+12),"I'm not gonna like this",334,342,132,23);
+f32 n =hello(1);
+str_lit a = "dfdsfds";
+int b = n;
+n = -b;
+
+i32 main(int hh){
+    print("hello");
+}
