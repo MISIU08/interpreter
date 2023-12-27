@@ -1,3 +1,4 @@
+
 #pragma once
 #include <vector>
 #include <cstdint>
@@ -7,25 +8,11 @@ class memory_pool_unit{
     void* pool;
     uint32_t allocated_size = 0;
     public:
-    memory_pool_unit(){
-        pool = (void(*))new char[size];
-    }
-    void* allocate(std::size_t alloc_size){
-        if(allocated_size+alloc_size > size){
-            std::cerr << "to big allocation" << "error at:" <<__FILE__ << " line:" <<__LINE__ <<"\n";
-            std::terminate();
-        }
-        void*memory = pool;
-        pool+=alloc_size;
-        return memory;
-    }
-    bool enought_space(std::size_t alloc_size){
-        return alloc_size +allocated_size <= size;
-    }
+    memory_pool_unit(){}
+    void* allocate(std::size_t alloc_size){}
+    bool enought_space(std::size_t alloc_size){}
     
-    ~memory_pool_unit(){
-        delete pool;
-    }
+    ~memory_pool_unit(){}
     
 
 
@@ -53,4 +40,3 @@ class memory_pool{
         *result=allocated;
     }
 };
-

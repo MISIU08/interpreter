@@ -24,6 +24,7 @@ enum class token_type : uint8_t {
     comma,
 
     identifier,
+    keyword,
 
     string_literal,
     numeric_literal,

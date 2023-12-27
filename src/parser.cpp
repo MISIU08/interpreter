@@ -6,7 +6,7 @@
 #include "lexer.h"
 #include <array>
 #include <span>
-#include <map>
+#include <unordered_set>
 
 
 namespace ast{
@@ -48,7 +48,7 @@ namespace ast{
         node*& node::arg_at(uint64_t idx){
             if(!(idx>argument_list.beg+argument_list.size)) return ast.arg_list_record[argument_list.beg+idx];
             else{
-                std::cout << "parser error line:"<< __LINE__ << " file: " << __FILE__ << "\n";
+                std::cout << "accessing node argument out of bound;" << "parser error line:"<< __LINE__ << " file: " << __FILE__ << "\n";
             }
             return *(node**)((void*)1);
         }
@@ -281,6 +281,20 @@ namespace ast{
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 namespace parser{
     
 
@@ -314,7 +328,9 @@ namespace parser{
             advance_token();
         }
         else{
-            std::cout << "expectation error: expected token::" << lexer::token_type_to_string(tok_type) << ", but got: token::" << lexer::token_type_to_string(current_token.tok_type) << "\n"; ; 
+            std::cout << "expectation error: expected token::" << lexer::token_type_to_string(tok_type) 
+            << ", but got: token::" << lexer::token_type_to_string(current_token.tok_type) << " with value: " << current_token.lexem << "\n"; 
+            std::terminate();
             advance_token();
         }
     }
@@ -377,7 +393,9 @@ namespace parser{
             result = ast::make_variable_node(current_token.lexem);
             break;
         default:
-            std::cout << "error at line: " <<__LINE__ << "  file: " << __FILE__ << "\n"; 
+            std::cout<<"unidefined value token; " << "error at line: " <<__LINE__ << "  file: " << __FILE__ << "\n";
+
+            std::terminate(); 
             break;
         }
         advance_token();
@@ -401,9 +419,16 @@ namespace parser{
         return ret;
     }
 
+
+
+
     ast::node* parse_function_call_body(std::string_view fn_name){
+        static std::unordered_set<std::string_view> builtin_functions{"print"};
         ast::node_type node_type=ast::node_type::function_call;
         if(fn_name[0]=='#'){
+            node_type = ast::node_type::builtin_function_call;
+        }
+        if(builtin_functions.contains(fn_name)){
             node_type = ast::node_type::builtin_function_call;
         }
         if(current_token.tok_type!=lexer::token_type::closing_parenthesis){
@@ -462,6 +487,13 @@ namespace parser{
             advance_token();
             ret = ast::make_unary_node(ast::node_type::negative);
             ret->unary_operand() = parse_terminal_expr();
+        }
+        else if(current_token.tok_type==lexer::token_type::keyword){
+            if(current_token.lexem=="return"){
+                advance_token();
+                ret = ast::make_unary_node(ast::node_type::return_instruction);
+                ret->unary_operand()=parse_expression(operator_precedence::lowest_precedence);
+            }
         }
         else{
             std::cout << "error at line: " <<__LINE__ << "  file: " << __FILE__ << "\n"; 

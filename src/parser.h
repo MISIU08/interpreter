@@ -59,6 +59,7 @@
 
 
             //NODE FAMILY: nofamily
+            return_instruction,
             assigment,
 
             data_type,

@@ -38,24 +38,28 @@ void report_error(std::string_view errormsg){
 }
 
 bool char_is_not_special(char i){
-    return i!='+'&&i!='-'&&i!='*'&&i!='/'&&i!='='&&i!='&'&&i!='|'&&i!='('&&i!=')'&&i!=';'&&i!='{'&&i!='}'&&i!=' '&&i!='\n'&&i!='\0'&&i!='"'&&i!=',';
+    return i!='+'&&i!='-'&&i!='*'&&i!='/'&&i!='='&&i!='&'&&i!='|'&&i!='('&&i!=')'&&i!=';'&&i!='{'&&i!='}'&&i!=' '&&i!='\t' &&i!='\n'&&i!='\0'&&i!='"'&&i!=',';
 }
 
 
 struct keyword_data{
     void(*handler)(token_type,std::string_view);
     token_type inp;
+    std::string_view name;
 
 };
 static auto const &get_keyword_list(){
     static std::unordered_map<std::string_view,keyword_data> keyword_list={
-        {"and",{add_token,token_type::logical_and}},
-        {"or",{add_token,token_type::logical_or}},
-        {"builtin::add",{add_token,token_type::addition}},
-        {"builtin::subtract",{add_token,token_type::subtraction}},
-        {"builtin::multiply",{add_token,token_type::multiplication}},
-        {"builtin::divide",{add_token,token_type::division}},
-        {"builtin::not_equal",{add_token,token_type::not_equal}}
+        {"and",{add_token,token_type::logical_and,""}},
+        {"or",{add_token,token_type::logical_or,""}},
+        {"builtin::add",{add_token,token_type::addition,""}},
+        {"builtin::subtract",{add_token,token_type::subtraction,""}},
+        {"builtin::multiply",{add_token,token_type::multiplication,""}},
+        {"builtin::divide",{add_token,token_type::division,""}},
+        {"builtin::not_equal",{add_token,token_type::not_equal,""}},
+        {"return",{add_token,token_type::keyword,"return"}},
+        {"fn",{add_token,token_type::keyword,"fn"}},
+        {"if",{add_token,token_type::keyword}}
 
 
     };
@@ -71,7 +75,7 @@ bool look_for_and_handle_keyword(std::string_view name){
     }catch(const std::out_of_range& ex){
         return false;
     }
-    kd.handler(kd.inp,"");
+    kd.handler(kd.inp,kd.name);
     return true;
 }
 
@@ -109,6 +113,10 @@ std::string_view token_type_to_string(token_type tt) {
             return "scope_beginning";
         case token_type::scope_ending:
             return "scope_ending";
+        case token_type::comma:
+            return "comma";
+        case token_type::keyword:
+            return "keyword";
         case token_type::identifier:
             return "identifier";
         case token_type::string_literal:
@@ -142,6 +150,8 @@ std::vector<token> Interpret(std::string_view input_arg){
         char i= input[idx];
         switch(i){
             case ' ':
+            case '\t':
+            case '\n':
                 break;
 
 
@@ -207,8 +217,6 @@ std::vector<token> Interpret(std::string_view input_arg){
                 break;
             case '\0':
                 add_token(token_type::end_of_file);
-                break;
-            case '\n':
                 break;
             case ',':
                 add_token(token_type::comma);
