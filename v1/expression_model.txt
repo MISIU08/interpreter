@@ -1,0 +1,28 @@
+expression make_something(){
+	expression left = expression::make_int_literal("3",get_type(basic_type::i32));
+	expression right = expression::make_int_literal("6",get_type(basic_type::i32));
+	expression result = expression::binary(left.move(), right.move() , expression::binary_type::mul);
+	expr_ref::literal left result.binary().left().literal();
+	std::string_view i = left.value();
+	left.data_type();
+	return result;
+}
+
+//when a reference to an expression is created the expression is stored in gc collected heap
+
+// the expression type is stored with the expression itself
+
+                __________________________________________________________________________
+memory arena:  | expr_type | expression data( binary expression/ unary expression / etc. )|
+               |  (header) |                                                              |
+               |___________|______________________________________________________________|
+
+expr_data_handle{
+	void* p;
+	expr_type get_type(){
+		return  *(expr_type*)p;
+	}
+	void* get_expr_data(){
+		return p + sizeof(expr_type);
+	}
+}

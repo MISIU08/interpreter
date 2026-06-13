@@ -1,0 +1,30 @@
+     1                                  extern	printf		; the C function, to be called
+     2                                  
+     3                                          SECTION .data		; Data section, initialized variables
+     4                                  
+     5 00000000 05000000                	a:	dd	5		; int a=5;
+     6 00000004 613D25642C20656178-     fmt:    db "a=%d, eax=%d", 10, 0 ; The printf format, "\n",'0'
+     6 0000000D 3D25640A00         
+     7                                  
+     8                                  
+     9                                          SECTION .text                   ; Code section.
+    10                                  
+    11                                          global main		; the standard gcc entry point
+    12                                  main:				; the program label for the entry point
+    13 00000000 55                              push    ebp		; set up stack frame
+    14 00000001 89E5                            mov     ebp,esp
+    15                                  
+    16 00000003 A1[00000000]            	mov	eax, [a]	; put a from store into register
+    17 00000008 83C002                  	add	eax, 2		; a+2
+    18 0000000B 50                      	push	eax		; value of a+2
+    19 0000000C FF35[00000000]                  push    dword [a]	; value of variable a
+    20 00000012 68[04000000]                    push    dword fmt	; address of ctrl string
+    21 00000017 E8(00000000)                    call    printf		; Call C function
+    22 0000001C 83C40C                          add     esp, 12		; pop stack 3 push times 4 bytes
+    23                                  
+    24 0000001F 89EC                            mov     esp, ebp	; takedown stack frame
+    25 00000021 5D                              pop     ebp		; same as "leave" op
+    26                                  
+    27 00000022 B800000000              	mov	eax,0		;  normal, no error, return value
+    28 00000027 C3                      	ret			; return
+    29                                  	

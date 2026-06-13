@@ -1,0 +1,10 @@
+macro make_struct( #type $T, #identifier $name,#expression $default_val){
+	
+	struct $name{
+		$T  val =  $default_val;
+		
+	}
+	
+}
+
+make_struct(int,int_struct,5-4/6)

@@ -1,0 +1,71 @@
+
+int sqrt_impl(int num, int prev_approx, int nb_tries ){
+    if(nb_tries==100){
+        return prev_approx;
+    }
+    return sqrt_impl(num, ((prev_approx*prev_approx +num)/(prev_approx*2)) ,nb_tries+1);
+}
+int sqrt_recursive(int num){
+    return sqrt_impl(num,2,0);
+}
+
+class three_integers{
+    int a;
+    int b;
+    int c;
+}
+int sqrt(int num){
+	int zero = 0;
+	if(num==0){
+		return 0;
+	}
+
+    int approx = 2;
+    for(int i = 0; i<=20; i=i+1){
+        approx=((approx*approx +num)/(approx*2));
+		
+    }
+   
+    return approx;
+}
+int solve(int a,int b,int c){
+	if(a==0){
+		return -c/b;
+	}
+	int delta = b*b -4*a*c;
+	return (-b+sqrt(delta))/(2*a);
+}
+
+int sum_three_integers(three_integers gg){
+    return gg.a + gg.b + gg.c;
+}
+void print_three_ints(three_integers s){
+	print("{");
+	print(" a =",s.a);
+	print(" b =",s.b);
+	print(" c =",s.c);
+	print("}");
+}
+
+void __main(){
+    int b = 5;
+    three_integers k;
+    k.a = 0;
+    k.b = 11;
+    k.c = 8;
+	three_integers n = k;
+    for(;k.b>k.a;k.a= k.a+1){
+ 
+        print(k.a);
+    }
+	
+    print(k.c);
+	print_three_ints(k);
+	print_three_ints(n);
+    print("sum_three_integers(k) =",sum_three_integers(k));
+	print("sum_three_integers(n) =", sum_three_integers(n));
+	print("sqrt(100) =", sqrt(100));
+
+}
+
+__main();

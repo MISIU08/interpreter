@@ -1,0 +1,28 @@
+
+int wyliczenie(int a,int b){
+    int k = 2*(a+3)*(4-2);
+    return k;
+}
+
+f32 dodaj_ulamki(f32 a,f32 b){
+	return a+b;
+}
+
+int main(){
+
+	f32 b = 3.23/3;
+	print("3.23 / 3 =",b);
+	
+	int k = 10/2;
+	print("10/2 = ", k);
+	
+	string s = "czesc " + "misiu";
+	print("'czesc' + 'misiu' = ",s);
+	
+    int e = wyliczenie(1,3);
+    print("wyliczenie(1,3) = ",e );
+	
+	print("dodaj_ulamki(1.43,2.45) = ", dodaj_ulamki(1.43,2.45));
+    return 0;
+
+}

@@ -1,0 +1,20 @@
+cmake_minimum_required(VERSION 3.28.1)
+set(CMAKE_EXPORT_COMPILE_COMMANDS 1)
+set (CMAKE_CXX_STANDARD 23)
+#add_compile_options(-fsanitize=address)
+#add_link_options(-fsanitize=address)
+
+project(interpreter VERSION 0.1.0 LANGUAGES C CXX)
+SET(GCC_COVERAGE_COMPILE_FLAGS "-mavx")
+
+#include_directories("C:\\Program Files (x86)\\wxWidgets\\include\\wx-3.2" "C:\\Program Files (x86)\\wxWidgets\\lib\\wx\\include\\msw-unicode-3.2")
+include_directories("./include")
+include(CTest)
+enable_testing()
+
+add_executable(interpreter   src/main.cpp src/parser.cpp src/lexer.cpp src/dast.cpp src/make_dast.cpp)
+#target_link_libraries(interpreter "C:\\Program Files (x86)\\wxWidgets\\lib\\libwx_mswu-3.2.dll.a")
+#set(CMAKE_COLOR_DIAGNOSTICS On)
+set(CPACK_PROJECT_NAME ${PROJECT_NAME})
+set(CPACK_PROJECT_VERSION ${PROJECT_VERSION})
+include(CPack)

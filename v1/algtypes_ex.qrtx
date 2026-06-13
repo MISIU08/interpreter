@@ -1,0 +1,66 @@
+algtype state{
+	happy{ int  } ;
+	sad{ int }
+	normal;
+
+}
+
+template <typename T>
+algtype option{
+	value(T);
+	null;
+
+}
+
+pub int main(){
+	
+	state st = state::happy{ 54 };
+	int a = 0;
+	print(#local::a);//prints the value of a
+	match( st ){
+		case state::happy{ happiness } :
+			print("happy with happiness: ",happiness);
+		case state::sad{ sadness }:
+			print("happy with happiness: ",happiness);
+		case state::normal:
+			print("normal");
+	}
+	
+	
+	int hello = 5;
+	match(hello){
+		case 5 | 3:
+			print("5 or 3");
+		case 6 | 7:
+			print("6 or 7");
+		case 4:
+			print("4");
+		case _ :
+			print("number");
+	}
+	
+	
+	st = state::sad{7};
+	int multiplier = 4;
+	match(st,multiplier){
+		case (state::sad{ &sadness },_):
+			sadness*=multiplier;
+			print("sadness = ", sadness);
+		case (state::happy{&happiness} , 5):
+			print("multiplying happy by 5");
+			happiness*=5;
+		case _;
+	}
+	
+	auto op = option< string >::value{ " I'm happy" };
+	op = option< string >::null;
+	
+	match( op ){
+		case option::value{ val }:
+			print("value: ",val);
+		case option::null:
+			print("null");
+	
+	}
+	
+}

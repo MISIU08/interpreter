@@ -1,0 +1,428 @@
+namespace ASM{
+using namespace dast;    
+std::string AsmDataSegment= "section .data\n";
+std::string Asm;
+std::string_view AsmMainReturn = R"(
+    pop rbx
+    ret 
+
+)";
+std::string_view AsmMainBegin = R"(
+main:
+    push rbx
+    mov rbx,rsp
+)";
+std::string AsmGeneratePrint(std::string printed_value){
+    return "\n    mov rcx,message\n    mov edx,"+printed_value+"\n    call printf\n";
+}
+enum class AsmDataType{
+    byte=1,
+    word=2,
+    dword=4,
+    qword=8,
+};
+std::unordered_map<basic_type,AsmDataType> basic_t_conversion{
+    {basic_type::i8,AsmDataType::byte},
+    {basic_type::u8,AsmDataType::byte},
+    {basic_type::i16,AsmDataType::word},
+    {basic_type::u16,AsmDataType::word},
+    {basic_type::i32,AsmDataType::dword},
+    {basic_type::u32,AsmDataType::dword},
+    {basic_type::i64,AsmDataType::qword},
+    {basic_type::u64,AsmDataType::qword},
+};
+std::unordered_map<AsmDataType,std::string_view> asm_store_keyword{
+    {AsmDataType::byte,"db"},
+    {AsmDataType::word,"dw"},
+    {AsmDataType::dword,"dd"},
+    {AsmDataType::qword,"dq"}
+};
+std::string get_glvar_asm_name(variable* v){
+    return "qrtx_glvar_id_"+std::to_string(std::uintptr_t(v));
+}
+uint64_t asm_curr_rbx_offset = 0;
+std::unordered_map<variable*,std::string> dast_var_to_asm_var;
+std::string static_stack_alloc(AsmDataType t){
+    std::string result = "[rbx-" + std::to_string(asm_curr_rbx_offset) +"]";
+    asm_curr_rbx_offset += std::to_underlying(t);
+    return result;
+}
+std::string get_local_var(variable*v){
+    if(dast_var_to_asm_var.contains(v)){
+        return dast_var_to_asm_var.at(v);
+    }
+    
+    std::string result = static_stack_alloc( basic_t_conversion.at(v->data_type->basic_t));
+    dast_var_to_asm_var[v] = result;
+    return result;
+}
+std::string get_asm_var(variable*v){
+    if(v->var_type == variable_type::local){
+        return get_local_var(v);
+    }
+    if(v->var_type==variable_type::global){
+        return "[" + get_glvar_asm_name(v) +"]";
+    }
+    std::terminate();
+}
+std::string asm_main_body;
+std::string convert_expr_to_asm(expression* e){
+    if(e->is_literal(literal::type::intlit)){
+        return std::string( e->as_literal().value);
+    }
+    if(e->has_expr_type(expression::type::binary_expr)){
+        if(is_sint(e->data_type())){
+            std::string result = static_stack_alloc(basic_t_conversion.at( e->data_type()->basic_t));
+            std::string left = convert_expr_to_asm(e->as_binary().left);
+            std::string right = convert_expr_to_asm(e->as_binary().right);
+            binary_expr::type a = e->as_binary().binexpr_type;
+            std::string instruction;
+            switch (a)
+            {
+                case binary_expr::type::add:
+                    instruction =  "add";
+                    break;
+                case binary_expr::type::sub:
+                    instruction = "sub";
+                    break;
+                case binary_expr::type::mul:
+                    instruction = "imul";
+                    break;
+                case binary_expr::type::div:
+                    instruction = "idiv";
+                    break;
+                default:
+                    std::terminate();
+            }
+            asm_main_body += "\n    mov r11d, " + left;
+            asm_main_body += "\n    "+instruction+" r11d, " + right ; 
+            asm_main_body += "\n    mov " + result +", r11d\n"; 
+            return result;
+        }
+        if(is_uint(e->data_type())){
+            std::string result = static_stack_alloc(basic_t_conversion.at( e->data_type()->basic_t));
+            std::string left = convert_expr_to_asm(e->as_binary().left);
+            std::string right = convert_expr_to_asm(e->as_binary().right);
+            binary_expr::type a = e->as_binary().binexpr_type;
+            std::string instruction;
+            switch (a)
+            {
+                case binary_expr::type::add:
+                    instruction =  "add";
+                    break;
+                case binary_expr::type::sub:
+                    instruction = "sub";
+                    break;
+                case binary_expr::type::mul:
+                    instruction = "mul";
+                    break;
+                case binary_expr::type::div:
+                    instruction = "div";
+                    break;
+                default:
+                    std::terminate();
+            }
+            asm_main_body += "\n    mov r11d, " + left;
+            asm_main_body += "\n    "+instruction+" r11d, " + right ; 
+            asm_main_body += "\n    mov " + result +", r11d\n"; 
+            return result;
+        }
+    }
+    if(e->has_expr_type(expression::type::variable)){
+        return get_asm_var(e->as_variable());
+    }
+    std::terminate();
+    
+
+}
+void ASM_convert(){
+
+    for(auto&[name,glvar]:global_variables){
+        AsmDataType glvar_asm_t = basic_t_conversion.at(glvar->data_type->basic_t);
+        AsmDataSegment += get_glvar_asm_name(glvar) + ": ";
+        AsmDataSegment+= asm_store_keyword[glvar_asm_t];
+        AsmDataSegment+= " 0\n\n";
+    }
+    for(auto& stmt:functions["#__init_module__#"]->definition.value_or(nullptr)->instructions){
+        stmt.require_stmt_type(statement::type::set_stmt);
+        set_stmt* ins = stmt.as_set_stmt();
+        asm_main_body += "\n    mov r11d, " +convert_expr_to_asm( ins->src);
+        asm_main_body += "\n    mov" + get_asm_var(ins->dest->as_variable()) + ", r11d"; 
+        asm_main_body += AsmGeneratePrint(get_asm_var(ins->dest->as_variable()));
+        
+    }
+}
+void PrintASM(){
+    AsmDataSegment += R"(
+
+message: db  '%d',10, 0
+
+    )";
+    Asm+=R"(
+default rel
+global  main
+extern  printf
+
+section .text
+
+
+)";
+    Asm+=AsmMainBegin;
+    ASM_convert();
+    Asm+= "\n    sub rsp, " + std::to_string(((asm_curr_rbx_offset/16)+1)*16) +"\n";
+    Asm+= asm_main_body;
+    Asm += AsmMainReturn;
+    Asm+=AsmDataSegment;
+    std::ofstream file( "../output.asm");
+    file << Asm;
+;
+
+    
+}
+
+
+
+namespace v2{
+
+enum class AsmReg:uint8_t{
+rax ,
+eax ,
+ax ,
+al,
+ah,
+
+rcx ,
+ecx ,
+cx ,
+cl,
+ch,
+
+rdx ,
+edx ,
+dx ,
+dl,
+dh,
+
+rbx ,
+ebx ,
+bx ,
+bl,
+bh,
+
+rsi ,
+esi ,
+si ,
+sil,
+
+rdi ,
+edi ,
+di ,
+dil,
+
+rsp ,
+esp ,
+sp ,
+spl,
+
+rbp ,
+ebp ,
+bp ,
+bpl,
+
+r8 ,
+r8d ,
+r8w ,
+r8b,
+
+r9 ,
+r9d ,
+r9w ,
+r9b,
+
+r10 ,
+r10d ,
+r10w ,
+r10b,
+
+r11 ,
+r11d ,
+r11w ,
+r11b,
+
+r12 ,
+r12d ,
+r12w ,
+r12b,
+
+r13 ,
+r13d ,
+r13w ,
+r13b,
+
+r14 ,
+r14d ,
+r14w ,
+r14b,
+
+r15 ,
+r15d ,
+r15w ,
+r15b
+};
+
+enum class AsmDataType:uint8_t{
+    byte=1,
+    word=2,
+    dword=4,
+    qword=8,
+};
+using word_map = enum_to_type_map<AsmDataType>::map<
+    type_map_elem<AsmDataType::byte,uint8_t>,
+    type_map_elem<AsmDataType::word,uint16_t>,
+    type_map_elem<AsmDataType::dword,uint32_t>,
+    type_map_elem<AsmDataType::qword,uint64_t>
+>;
+template <AsmDataType t>
+using AsmDataType_t = word_map::get_type<t> ;
+enum class RegOfssetOp:uint8_t{
+    sub,
+    add
+};
+struct AsmLabelID{
+    uint32_t id=0;
+};
+struct MemOperandDereference{
+    union{
+       AsmReg reg;
+        struct{
+            RegOfssetOp op;
+            AsmReg reg;
+            uint64_t value;
+        } reg_ofsset;
+        AsmLabelID label;;;
+    };
+};
+template <AsmDataType t>
+struct MemOperand{
+    enum class type{
+        reg,
+        mem,
+        constant,
+        deref
+    };
+
+    type operand_type;
+    union{
+        AsmReg as_asm_reg;
+        MemOperandDereference as_deref;
+        AsmLabelID as_label;
+        AsmDataType_t<t> as_constant;
+
+    };
+    
+};
+
+    enum class AsmOperation:uint8_t{
+        mov,
+
+        imul,
+        mul,
+
+        div,
+        idiv,
+
+        add,
+        sub,
+        mod,
+        push,
+        pop,
+    };
+
+
+struct BinIns{
+    AsmOperation type;
+    union{
+        struct{
+            MemOperand<AsmDataType::dword> left;
+            MemOperand<AsmDataType::dword> right;
+        }as_dword;
+        struct{
+            MemOperand<AsmDataType::word> left;
+            MemOperand<AsmDataType::word> right;
+        }as_word;
+        struct{
+            MemOperand<AsmDataType::qword> left;
+            MemOperand<AsmDataType::qword> right;
+        }as_qword;
+        struct{
+            MemOperand<AsmDataType::byte> left;
+            MemOperand<AsmDataType::byte> right;
+        }as_byte;
+    };
+};
+
+
+
+
+struct UnIns{
+   
+    AsmOperation instruction_type;
+    union{
+        MemOperand<AsmDataType::dword> dword_operand;
+        MemOperand<AsmDataType::word> word_operand;
+        MemOperand<AsmDataType::qword> qword_operand;
+        MemOperand<AsmDataType::byte> byte_operand;
+    
+    };
+};
+
+
+struct store_data{
+    enum class type{
+        db,
+        dw,
+        dd,
+        dq
+    };
+    type t;
+    std::vector<uint8_t> data;
+
+};
+enum class instruction_type:uint8_t{
+    none,
+    data,
+    unary,
+    binary,
+};
+struct Instruction{
+Instruction():none{std::nullopt}{}
+    instruction_type type;
+    union{
+        std::nullopt_t  none;
+        store_data data;
+        UnIns unary_instruction;
+        BinIns binary_instruction;
+        AsmLabelID declare_label;
+    };
+};
+
+
+
+}
+
+
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
